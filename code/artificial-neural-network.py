@@ -50,41 +50,91 @@ def importImage(caminho):
   # retornar imagens e rotulos
   return np.asarray(rotulo), np.asarray(imagens)
 
+
 # importar e preprocessar base de treinamento
-rotulo, caracteristicas = importImage('data/chest_xray/train/')
+rotulo_treino, caracteristicas_treino = importImage('data/chest_xray/train/')
 
 # importar e preprocessar base de teste
-rotulo_test, caracteristicas_test = importImage('data/chest_xray/test/')
+rotulo_teste, caracteristicas_teste = importImage('data/chest_xray/test/')
 
 #========================================
 # rede neural artificial com keras
 #========================================
 
+def artificialNeuralNetworkModel(caracteristicas, rotulo, caracteristicas_test, n1, n2, n3):
+
+    ## modelagem
+    # inicializa um modelo sequencial [outros modelos podem ser empregados, mas abordamos o mais simples]
+    model = keras.models.Sequential() 
+    # camada de entrada, input no mesmo shape dos dados
+    model.add(keras.layers.core.Dense(n1, input_shape=tuple([caracteristicas.shape[1]]), activation='sigmoid'))
+    # camada oculta
+    model.add(keras.layers.core.Dense(n2, activation='relu'))
+    model.add(keras.layers.core.Dense(n3, activation='relu'))
+    # camada de saida (decisao)
+    model.add(keras.layers.core.Dense(2,  activation='softmax'))
+    # otimizacao
+    model.compile(loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+
+    ## treinamento
+    model.fit(caracteristicas, rotulo, epochs=12)
+
+    ## previsao
+    predictions = model.predict(caracteristicas_test)
+    # decidir por '0' se a probabilidade de 0 for maior, decidir por 1 ao contrario
+    rotulo_pred = [0 if x[0] > x[1] else 1 for x in predictions]
+
+    return rotulo_pred
+
+
+def modelHistogram(caracteristicas, rotulo, caracteristicas_test, rotulo_test, n1, n2, n3, niter):
+    count = 0
+    acc_list = []
+    while count <= niter:
+        rotulo_previsto = artificialNeuralNetworkModel(caracteristicas, rotulo, caracteristicas_test, n1, n2, n3)
+        from sklearn.metrics import confusion_matrix
+        vp, fn, fp, vn = confusion_matrix(rotulo_test, rotulo_previsto, labels=[1,0]).reshape(-1)
+        acc_list.append(round( (vp+vn)/(vp+vn+fn+fp), 4) )
+        count+=1
+        print(count)
+    return acc_list
+
+
+# executar 100 modelos para config 512x512x64
+results = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 256, 256, 64, 50)
+results2 = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 512, 512, 64, 50)
+results3 = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 512, 64, 64, 50)
+
+# salvar dados
+datasearch = pd.DataFrame({'256x256x64':results, '512x512x64':results3, '512x64x64':results3})
+datasearch.to_csv('paper-neural-networks/results/experimentos.csv')
+
+
+#========================================
+# modelo final
+#========================================
+
+## modelagem
 # inicializa um modelo sequencial [outros modelos podem ser empregados, mas abordamos o mais simples]
 model = keras.models.Sequential() 
 # camada de entrada, input no mesmo shape dos dados
-model.add(keras.layers.core.Dense(64, input_shape=tuple([caracteristicas.shape[1]]), activation='sigmoid'))
+model.add(keras.layers.core.Dense(n1, input_shape=tuple([caracteristicas.shape[1]]), activation='sigmoid'))
 # camada oculta
-model.add(keras.layers.core.Dense(512, activation='relu'))
-model.add(keras.layers.core.Dense(64, activation='relu'))
+model.add(keras.layers.core.Dense(n2, activation='relu'))
+model.add(keras.layers.core.Dense(n3, activation='relu'))
 # camada de saida (decisao)
 model.add(keras.layers.core.Dense(2,  activation='softmax'))
 # otimizacao
 model.compile(loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
-model.summary()
 
-# treinamento
-model.fit(caracteristicas, rotulo, epochs=30)
+## treinamento
+model.fit(caracteristicas, rotulo, epochs=18)
 
-# previsao
+## previsao
 predictions = model.predict(caracteristicas_test)
-
 # decidir por '0' se a probabilidade de 0 for maior, decidir por 1 ao contrario
 rotulo_pred = [0 if x[0] > x[1] else 1 for x in predictions]
 
-#========================================
-# avaliando modelo
-#========================================
 
 # gerar matriz de confusao 
 from sklearn.metrics import confusion_matrix

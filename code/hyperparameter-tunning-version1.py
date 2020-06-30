@@ -162,6 +162,7 @@ tuner.results_summary()
 
 # Retrieve the best model.
 best_model = tuner.get_best_models(num_models=1)[0]
+best_model.summary()
 
 # Evaluate the best model.
 loss, accuracy = best_model.evaluate(caracteristicas_teste, alvo_teste)
