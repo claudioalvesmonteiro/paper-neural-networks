@@ -101,13 +101,13 @@ def modelHistogram(caracteristicas, rotulo, caracteristicas_test, rotulo_test, n
 
 
 # executar 100 modelos para config 512x512x64
-results = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 256, 256, 64, 50)
+results = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 256, 256, 256, 50)
 results2 = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 512, 512, 64, 50)
 results3 = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 512, 64, 64, 50)
 
 # salvar dados
-datasearch = pd.DataFrame({'256x256x64':results, '512x512x64':results3, '512x64x64':results3})
-datasearch.to_csv('paper-neural-networks/results/experimentos.csv')
+datasearch = pd.DataFrame({'256x256x256':results})
+datasearch.to_csv('paper-neural-networks/results/experimentos2.csv')
 
 
 #========================================
@@ -118,27 +118,27 @@ datasearch.to_csv('paper-neural-networks/results/experimentos.csv')
 # inicializa um modelo sequencial [outros modelos podem ser empregados, mas abordamos o mais simples]
 model = keras.models.Sequential() 
 # camada de entrada, input no mesmo shape dos dados
-model.add(keras.layers.core.Dense(n1, input_shape=tuple([caracteristicas.shape[1]]), activation='sigmoid'))
+model.add(keras.layers.core.Dense(256, input_shape=tuple([caracteristicas_treino.shape[1]]), activation='sigmoid'))
 # camada oculta
-model.add(keras.layers.core.Dense(n2, activation='relu'))
-model.add(keras.layers.core.Dense(n3, activation='relu'))
+model.add(keras.layers.core.Dense(256, activation='tanh'))
+model.add(keras.layers.core.Dense(256, activation='tanh'))
 # camada de saida (decisao)
 model.add(keras.layers.core.Dense(2,  activation='softmax'))
 # otimizacao
 model.compile(loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
 ## treinamento
-model.fit(caracteristicas, rotulo, epochs=18)
+model.fit(caracteristicas_treino, rotulo_treino, epochs=8)
 
 ## previsao
-predictions = model.predict(caracteristicas_test)
+predictions = model.predict(caracteristicas_teste)
 # decidir por '0' se a probabilidade de 0 for maior, decidir por 1 ao contrario
 rotulo_pred = [0 if x[0] > x[1] else 1 for x in predictions]
 
 
 # gerar matriz de confusao 
 from sklearn.metrics import confusion_matrix
-vp, fn, fp, vn = confusion_matrix(rotulo_test, rotulo_pred, labels=[1,0]).reshape(-1)
+vp, fn, fp, vn = confusion_matrix(rotulo_teste, rotulo_pred, labels=[1,0]).reshape(-1)
 total = vp+fn+fp+vn
 print('Verdadeiro Positivo: ', vp, '/', round(vp/total*100, 2), '%')
 print('Falso Positivo: ', fp, '/', round(fp/total*100, 2), '%')
@@ -152,7 +152,7 @@ print('Acuracia: ', (vp+vn)/total, '/', round((vp+vn)/total*100, 2), '%')
 probs = [x[1] for x in predictions]
 
 from sklearn.metrics import roc_curve,roc_auc_score
-taxa_falso_positivo , taxa_verdadeiro_positivo , thresholds = roc_curve(rotulo_test , probs)
+taxa_falso_positivo , taxa_verdadeiro_positivo , thresholds = roc_curve(rotulo_teste , probs)
 
 # visualizar ROC
 def plot_roc_curve(taxa_falso_positivo, taxa_verdadeiro_positivo): 
