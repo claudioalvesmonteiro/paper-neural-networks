@@ -62,7 +62,6 @@ rotulo_teste, caracteristicas_teste = importImage('data/chest_xray/test/')
 #========================================
 
 def artificialNeuralNetworkModel(caracteristicas, rotulo, caracteristicas_test, n1, n2, n3):
-
     ## modelagem
     # inicializa um modelo sequencial [outros modelos podem ser empregados, mas abordamos o mais simples]
     model = keras.models.Sequential() 
@@ -75,10 +74,8 @@ def artificialNeuralNetworkModel(caracteristicas, rotulo, caracteristicas_test, 
     model.add(keras.layers.core.Dense(2,  activation='softmax'))
     # otimizacao
     model.compile(loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
-
     ## treinamento
     model.fit(caracteristicas, rotulo, epochs=12)
-
     ## previsao
     predictions = model.predict(caracteristicas_test)
     # decidir por '0' se a probabilidade de 0 for maior, decidir por 1 ao contrario
@@ -87,7 +84,11 @@ def artificialNeuralNetworkModel(caracteristicas, rotulo, caracteristicas_test, 
     return rotulo_pred
 
 
-def modelHistogram(caracteristicas, rotulo, caracteristicas_test, rotulo_test, n1, n2, n3, niter):
+def hyperpExperiment(caracteristicas, rotulo, caracteristicas_test, rotulo_test, n1, n2, n3, niter):
+    ''' executa _niter_ shots de modelos de rna keras para as 
+        configuracoes presentes em n1, n2 e n3,
+        retornando uma lista com a acuracia de cada modelo
+    '''
     count = 0
     acc_list = []
     while count <= niter:
@@ -100,14 +101,18 @@ def modelHistogram(caracteristicas, rotulo, caracteristicas_test, rotulo_test, n
     return acc_list
 
 
-# executar 100 modelos para config 512x512x64
-results = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 256, 256, 256, 50)
-results2 = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 512, 512, 64, 50)
-results3 = modelHistogram(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 512, 64, 64, 50)
+# experimentos
+experimento1 = hyperpExperiment(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 256, 256, 256, 50)
+experimento2 = hyperpExperiment(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 512, 512, 64, 50)
+experimento3 = hyperExperiment(caracteristicas_treino, rotulo_treino, caracteristicas_teste, rotulo_teste, 512, 64, 64, 50)
 
 # salvar dados
-datasearch = pd.DataFrame({'256x256x256':results})
-datasearch.to_csv('paper-neural-networks/results/experimentos2.csv')
+datasearch = pd.DataFrame({'256x256x256':experimento1;
+                            '512x512x64':experimento2;
+                            '512x64x64':experimento3;
+})
+
+datasearch.to_csv('paper-neural-networks/results/experimentos_final.csv')
 
 
 #========================================
@@ -118,10 +123,10 @@ datasearch.to_csv('paper-neural-networks/results/experimentos2.csv')
 # inicializa um modelo sequencial [outros modelos podem ser empregados, mas abordamos o mais simples]
 model = keras.models.Sequential() 
 # camada de entrada, input no mesmo shape dos dados
-model.add(keras.layers.core.Dense(256, input_shape=tuple([caracteristicas_treino.shape[1]]), activation='sigmoid'))
+model.add(keras.layers.core.Dense(512, input_shape=tuple([caracteristicas_treino.shape[1]]), activation='sigmoid'))
 # camada oculta
-model.add(keras.layers.core.Dense(256, activation='tanh'))
-model.add(keras.layers.core.Dense(256, activation='tanh'))
+model.add(keras.layers.core.Dense(512, activation='tanh'))
+model.add(keras.layers.core.Dense(64, activation='tanh'))
 # camada de saida (decisao)
 model.add(keras.layers.core.Dense(2,  activation='softmax'))
 # otimizacao
